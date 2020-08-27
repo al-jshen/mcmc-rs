@@ -11,5 +11,9 @@
 
 
 # Added by cargo
-
 /target
+
+# MCMC data for plotting
+data.txt
+
+

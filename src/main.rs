@@ -20,12 +20,15 @@ fn main() {
     //     .collect::<Vec<f64>>();
 
     // data = scale(data, 0., 1.);
-    println!("d={:?}", data);
 
     let prior_dist = Uniform::new(6., 8.).unwrap();
     let mu_start = 8.;
-    let samples = sampler(data, 2000, rng, prior_dist, mu_start);
-    println!("s={:?}", samples);
+    let samples = sampler(&data, 2000, rng, prior_dist, mu_start);
+
+    println!("{}", n);
+    data.iter().for_each(|x| println!("{}", x));
+    samples.iter().for_each(|x| println!("{}", x));
+    //println!("s={:?}", samples);
 }
 
 fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
@@ -34,7 +37,7 @@ fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
     }).collect::<Vec<_>>()
 }
 
-fn sampler(data: Vec<f64>, n_iter: usize, mut rng: ThreadRng, prior_dist: Uniform, mut mu_current: f64) -> Vec<f64>{
+fn sampler(data: &Vec<f64>, n_iter: usize, mut rng: ThreadRng, prior_dist: Uniform, mut mu_current: f64) -> Vec<f64>{
     let mut samples: Vec<f64> = vec![0.; n_iter];
     samples[0] = mu_current;
 
@@ -53,12 +56,14 @@ fn sampler(data: Vec<f64>, n_iter: usize, mut rng: ThreadRng, prior_dist: Unifor
                 .pdf(*x)
                 .ln()
         }).sum();
+
         
         let prior_current = prior_dist.pdf(mu_current).ln();
         let prior_proposal = prior_dist.pdf(mu_proposal).ln();
 
         let p_current = likelihood_current + prior_current;
         let p_proposal = likelihood_proposal + prior_proposal;
+
 
         let p_accept = f64::min((p_proposal - p_current).exp(), 1.);
         let accept = rng.gen_bool(p_accept);
@@ -71,4 +76,3 @@ fn sampler(data: Vec<f64>, n_iter: usize, mut rng: ThreadRng, prior_dist: Unifor
     }
     samples
 }
-
