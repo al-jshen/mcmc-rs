@@ -10,7 +10,7 @@ use std::{
 fn main() {
     let n = 1000;
     let mut rng = rand::thread_rng();
-    let norm_dist_sampler = Normal::new(7., 3.).unwrap();
+    let norm_dist_sampler = Normal::new(7., 5.).unwrap();
     let data = norm_dist_sampler.sample_iter(&mut rng).take(n).collect::<Vec<f64>>();
 
     // let mut dat_file = File::open("data.csv").unwrap();
@@ -21,7 +21,7 @@ fn main() {
 
     // data = scale(data, 0., 1.);
 
-    let prior_dist = Uniform::new(6., 8.).unwrap();
+    let prior_dist = Normal::new(7., 3.).unwrap();
     let mu_start = 8.;
     let samples = sampler(&data, 2000, rng, prior_dist, mu_start);
 
@@ -37,11 +37,11 @@ fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
     }).collect::<Vec<_>>()
 }
 
-fn sampler(data: &Vec<f64>, n_iter: usize, mut rng: ThreadRng, prior_dist: Uniform, mut mu_current: f64) -> Vec<f64>{
+fn sampler(data: &Vec<f64>, n_iter: usize, mut rng: ThreadRng, prior_dist: impl Continuous<f64, f64>, mut mu_current: f64) -> Vec<f64>{
     let mut samples: Vec<f64> = vec![0.; n_iter];
     samples[0] = mu_current;
 
-    let proposal_dist = Normal::new(0., 0.05).unwrap();
+    let proposal_dist = Normal::new(0., 0.1).unwrap();
     
     for i in 1..n_iter {
         let mu_proposal = mu_current + proposal_dist.sample(&mut rng);
