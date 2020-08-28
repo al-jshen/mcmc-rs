@@ -7,7 +7,6 @@ pub struct DNormal;
 #[derive(Debug, Clone, Copy)]
 pub struct DUniform;
 
-
 pub trait DWrapper {
     type Distr: Continuous<f64, f64>;
     fn new(self, param1: f64, param2: f64) -> Self::Distr;
