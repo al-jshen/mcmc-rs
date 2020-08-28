@@ -1,13 +1,13 @@
 mod distr_wrapper;
 mod utils;
 use rand::prelude::*;
-// use rand_distr::Distribution;
 use statrs::distribution::*;
 use std::{
     fs::File,
     io::{BufRead, BufReader},
     str::FromStr,
 };
+use rayon::prelude::*;
 
 fn main() {
     let mut rng = rand::thread_rng();
@@ -24,41 +24,41 @@ fn main() {
     //     .map(|l| f64::from_str(&l.unwrap()).unwrap())
     //     .collect::<Vec<f64>>();
 
-    // data = utils::scale(data, 0., 1.);
+    // data = utils::scale(utils::standardize(data), 0., 1.);
 
     let distr_mu = distr_wrapper::DNormal;
     let distr_sigma = distr_wrapper::DNormal;
 
-    let prior_mu = Uniform::new(0., 3.).unwrap();
-    let prior_sigma = Normal::new(5., 5.).unwrap();
+    let prior_mu = Uniform::new(0., 5.).unwrap();
+    let prior_sigma = Uniform::new(0., 10.).unwrap();
 
-    let proposal_mu = Normal::new(0., 0.2).unwrap();
-    let proposal_sigma = Normal::new(0., 0.2).unwrap();
+    let proposal_mu = Normal::new(0., 0.1).unwrap();
+    let proposal_sigma = Normal::new(0., 0.1).unwrap();
 
-    let (mu_samples, sigma_samples) = sampler(
-        &data,
-        10000,
-        rng,
-        distr_mu,
-        distr_sigma,
-        prior_mu,
-        prior_sigma,
-        proposal_mu,
-        proposal_sigma,
-    );
+    let chains = (0..num_cpus::get()).into_par_iter()
+        .map(|_| {
+            sampler(
+                &data,
+                5000,
+                distr_mu,
+                distr_sigma,
+                prior_mu,
+                prior_sigma,
+                proposal_mu,
+                proposal_sigma,
+            )
+        }).collect::<Vec<(Vec<f64>, Vec<f64>)>>();
 
     println!("d={:?}", data);
     //data.iter().for_each(|x| println!("{}", x));
     // mu_samples.iter().for_each(|x| println!("{}", x));
     // sigma_samples.iter().for_each(|x| println!("{}", x));
-    println!("ms={:?}", mu_samples);
-    println!("ss={:?}", sigma_samples);
+    println!("chains={:?}", chains);
 }
 
 fn sampler<T, U, V, W, X, Y>(
     data: &[f64],
     n_iter: usize,
-    mut rng: impl Rng,
     distr_mu: T,
     distr_sigma: U,
     prior_mu: V,
@@ -74,6 +74,7 @@ where
     X: Distribution<f64>,
     Y: Distribution<f64>,
 {
+    let mut rng = thread_rng();
     let mut mu_current = prior_mu.sample(&mut rng);
     let mut sigma_current = prior_sigma.sample(&mut rng);
     let mut mu_samples: Vec<f64> = vec![0.; n_iter];
@@ -84,6 +85,7 @@ where
     for i in 1..n_iter {
         let mut mu_proposal = mu_current + proposal_mu.sample(&mut rng);
         while mu_proposal <= 0. {
+            // println!("mu_current={}, mu_proposal={}", mu_current, mu_proposal);
             mu_proposal = mu_current + proposal_mu.sample(&mut rng);
         }
 
@@ -110,6 +112,7 @@ where
 
         let mut sigma_proposal = sigma_current + proposal_sigma.sample(&mut rng);
         while sigma_proposal <= 0. {
+            // println!("mu_current={}, mu_proposal={}", mu_current, mu_proposal);
             sigma_proposal = sigma_current + proposal_sigma.sample(&mut rng);
         }
 

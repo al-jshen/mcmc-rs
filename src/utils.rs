@@ -1,5 +1,7 @@
+use rayon::prelude::*;
+
 pub fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
-    data.iter()
+    data.par_iter()
         .map(|x| (high - low) * (x - min(&data)) / (max(&data) - min(&data)) + low)
         .collect::<Vec<_>>()
 }
@@ -7,7 +9,7 @@ pub fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
 pub fn standardize(data: Vec<f64>) -> Vec<f64> {
     let xbar = mean(&data);
     let sigma = variance(&data).sqrt();
-    data.iter().map(|x| {
+    data.par_iter().map(|x| {
         (x - xbar) / sigma
     }).collect::<Vec<f64>>()
 }
@@ -33,14 +35,14 @@ where
 }
 
 fn mean(data: &[f64]) -> f64 {
-    data.iter().sum::<f64>() / data.len() as f64
+    data.par_iter().sum::<f64>() / data.len() as f64
 }
 
 fn variance(data: &[f64]) -> f64 {
     // var = mean(abs(x - x.mean())**2)
     let xbar = mean(data);
     mean(
-        &data.iter().map(|x| {
+        &data.par_iter().map(|x| {
             (x - xbar).abs().powi(2)
         }).collect::<Vec<f64>>()
     )
