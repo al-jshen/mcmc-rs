@@ -12,8 +12,8 @@ use std::{
 fn main() {
     let mut rng = rand::thread_rng();
     let n = 1000;
-    let norm_dist_sampler = Normal::new(2., 4.).unwrap();
-    let data = norm_dist_sampler
+    let data = Normal::new(2., 4.)
+        .unwrap()
         .sample_iter(&mut rng)
         .take(n)
         .collect::<Vec<f64>>();
@@ -26,18 +26,25 @@ fn main() {
 
     // data = utils::scale(data, 0., 1.);
 
-    let mu_prior = Uniform::new(f64::EPSILON, 3.).unwrap();
-    let sigma_prior = Normal::new(5., 5.).unwrap();
-    let mu_distr = distr_wrapper::DNormal;
-    let sigma_distr = distr_wrapper::DNormal;
+    let distr_mu = distr_wrapper::DNormal;
+    let distr_sigma = distr_wrapper::DNormal;
+
+    let prior_mu = Uniform::new(0., 3.).unwrap();
+    let prior_sigma = Normal::new(5., 5.).unwrap();
+
+    let proposal_mu = Normal::new(0., 0.2).unwrap();
+    let proposal_sigma = Normal::new(0., 0.2).unwrap();
+
     let (mu_samples, sigma_samples) = sampler(
         &data,
         10000,
         rng,
-        mu_distr,
-        sigma_distr,
-        mu_prior,
-        sigma_prior,
+        distr_mu,
+        distr_sigma,
+        prior_mu,
+        prior_sigma,
+        proposal_mu,
+        proposal_sigma,
     );
 
     println!("d={:?}", data);
@@ -48,34 +55,36 @@ fn main() {
     println!("ss={:?}", sigma_samples);
 }
 
-fn sampler<T, U, V, W>(
+fn sampler<T, U, V, W, X, Y>(
     data: &[f64],
     n_iter: usize,
     mut rng: impl Rng,
     distr_mu: T,
     distr_sigma: U,
-    mu_prior: V,
-    sigma_prior: W,
+    prior_mu: V,
+    prior_sigma: W,
+    proposal_mu: X,
+    proposal_sigma: Y,
 ) -> (Vec<f64>, Vec<f64>)
 where
     T: distr_wrapper::DWrapper + Copy,
     U: distr_wrapper::DWrapper + Copy,
     V: Distribution<f64> + Continuous<f64, f64>,
     W: Distribution<f64> + Continuous<f64, f64>,
+    X: Distribution<f64>,
+    Y: Distribution<f64>,
 {
-    let mut mu_current = mu_prior.sample(&mut rng);
-    let mut sigma_current = sigma_prior.sample(&mut rng);
+    let mut mu_current = prior_mu.sample(&mut rng);
+    let mut sigma_current = prior_sigma.sample(&mut rng);
     let mut mu_samples: Vec<f64> = vec![0.; n_iter];
     let mut sigma_samples: Vec<f64> = vec![0.; n_iter];
     mu_samples[0] = mu_current;
     sigma_samples[0] = sigma_current;
 
-    let proposal_dist = Normal::new(0.0, 0.05).unwrap();
-
     for i in 1..n_iter {
-        let mut mu_proposal = mu_current + proposal_dist.sample(&mut rng);
+        let mut mu_proposal = mu_current + proposal_mu.sample(&mut rng);
         while mu_proposal <= 0. {
-            mu_proposal = mu_current + proposal_dist.sample(&mut rng);
+            mu_proposal = mu_current + proposal_mu.sample(&mut rng);
         }
 
         let distr_current = distr_mu.new(mu_current, sigma_current);
@@ -86,7 +95,7 @@ where
             &distr_proposal,
             mu_current,
             mu_proposal,
-            &mu_prior,
+            &prior_mu,
             data,
             &mut rng,
         );
@@ -99,9 +108,9 @@ where
 
         //
 
-        let mut sigma_proposal = sigma_current + proposal_dist.sample(&mut rng);
+        let mut sigma_proposal = sigma_current + proposal_sigma.sample(&mut rng);
         while sigma_proposal <= 0. {
-            sigma_proposal = sigma_current + proposal_dist.sample(&mut rng);
+            sigma_proposal = sigma_current + proposal_sigma.sample(&mut rng);
         }
 
         let distr_current = distr_sigma.new(mu_current, sigma_current);
@@ -112,7 +121,7 @@ where
             &distr_proposal,
             sigma_current,
             sigma_proposal,
-            &sigma_prior,
+            &prior_sigma,
             data,
             &mut rng,
         );
