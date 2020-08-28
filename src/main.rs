@@ -26,8 +26,6 @@ fn main() {
 
     // data = utils::scale(data, 0., 1.);
 
-    let mu_start = 1.;
-    let sigma_start = 6.;
     let mu_prior = Uniform::new(f64::EPSILON, 3.).unwrap();
     let sigma_prior = Normal::new(5., 5.).unwrap();
     let mu_distr = distr_wrapper::DNormal;
@@ -38,8 +36,6 @@ fn main() {
         rng,
         mu_distr,
         sigma_distr,
-        mu_start,
-        sigma_start,
         mu_prior,
         sigma_prior,
     );
@@ -58,17 +54,17 @@ fn sampler<T, U, V, W>(
     mut rng: impl Rng,
     distr_mu: T,
     distr_sigma: U,
-    mut mu_current: f64,
-    mut sigma_current: f64,
     mu_prior: V,
     sigma_prior: W,
 ) -> (Vec<f64>, Vec<f64>)
 where
     T: distr_wrapper::DWrapper + Copy,
     U: distr_wrapper::DWrapper + Copy,
-    V: Continuous<f64, f64>,
-    W: Continuous<f64, f64>,
+    V: Distribution<f64> + Continuous<f64, f64>,
+    W: Distribution<f64> + Continuous<f64, f64>,
 {
+    let mut mu_current = mu_prior.sample(&mut rng);
+    let mut sigma_current = sigma_prior.sample(&mut rng);
     let mut mu_samples: Vec<f64> = vec![0.; n_iter];
     let mut sigma_samples: Vec<f64> = vec![0.; n_iter];
     mu_samples[0] = mu_current;
