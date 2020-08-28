@@ -9,9 +9,9 @@ pub fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
 pub fn standardize(data: Vec<f64>) -> Vec<f64> {
     let xbar = mean(&data);
     let sigma = variance(&data).sqrt();
-    data.par_iter().map(|x| {
-        (x - xbar) / sigma
-    }).collect::<Vec<f64>>()
+    data.par_iter()
+        .map(|x| (x - xbar) / sigma)
+        .collect::<Vec<f64>>()
 }
 
 fn max<T>(data: &[T]) -> T
@@ -42,8 +42,9 @@ fn variance(data: &[f64]) -> f64 {
     // var = mean(abs(x - x.mean())**2)
     let xbar = mean(data);
     mean(
-        &data.par_iter().map(|x| {
-            (x - xbar).abs().powi(2)
-        }).collect::<Vec<f64>>()
+        &data
+            .par_iter()
+            .map(|x| (x - xbar).abs().powi(2))
+            .collect::<Vec<f64>>(),
     )
 }
