@@ -10,7 +10,7 @@ use std::{
 fn main() {
     let n = 1000;
     let mut rng = rand::thread_rng();
-    let norm_dist_sampler = Normal::new(7., 5.).unwrap();
+    let norm_dist_sampler = Beta::new(2., 4.).unwrap();
     let data = norm_dist_sampler.sample_iter(&mut rng).take(n).collect::<Vec<f64>>();
 
     // let mut dat_file = File::open("data.csv").unwrap();
@@ -21,12 +21,13 @@ fn main() {
 
     // data = scale(data, 0., 1.);
 
-    let mu_start = 8.;
-    let sigma_start = 4.;
-    let prior_dist = Normal::new(mu_start, sigma_start).unwrap();
-    let (mu_samples, sigma_samples) = sampler(&data, 2000, rng, prior_dist, mu_start, sigma_start);
+    let mu_start = 1.;
+    let sigma_start = 5.;
+    let mu_prior = Normal::new(mu_start, 5.).unwrap();
+    let sigma_prior = Normal::new(sigma_start, 5.).unwrap();
+    let (mu_samples, sigma_samples) = sampler(&data, 10000, rng, mu_start, sigma_start, mu_prior, sigma_prior);
 
-    //println!("{}", n);
+    println!("d={:?}", data);
     //data.iter().for_each(|x| println!("{}", x));
     // mu_samples.iter().for_each(|x| println!("{}", x));
     // sigma_samples.iter().for_each(|x| println!("{}", x));
@@ -40,22 +41,22 @@ fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {
     }).collect::<Vec<_>>()
 }
 
-fn sampler(data: &Vec<f64>, n_iter: usize, mut rng: impl Rng, prior_dist: impl Continuous<f64, f64>, mut mu_current: f64, mut sigma_current: f64) -> (Vec<f64>, Vec<f64>) {
+fn sampler<T: Continuous<f64, f64>, U: Continuous<f64, f64>>(data: &Vec<f64>, n_iter: usize, mut rng: impl Rng, mut mu_current: f64, mut sigma_current: f64, mu_prior: T, sigma_prior: U) -> (Vec<f64>, Vec<f64>) {
     let mut mu_samples: Vec<f64> = vec![0.; n_iter];
     let mut sigma_samples: Vec<f64> = vec![0.; n_iter];
     mu_samples[0] = mu_current;
     sigma_samples[0] = sigma_current;
 
 
-    let proposal_dist = Uniform::new(-0.1, 0.1).unwrap();
+    let proposal_dist = Uniform::new(-0.2, 0.2).unwrap();
     
     for i in 1..n_iter {
         let mu_proposal = mu_current + proposal_dist.sample(&mut rng);
 
-        let distr_current = Normal::new(mu_current, sigma_current).unwrap();
-        let distr_proposal = Normal::new(mu_proposal, sigma_current).unwrap();
+        let distr_current = Beta::new(mu_current, sigma_current).unwrap();
+        let distr_proposal = Beta::new(mu_proposal, sigma_current).unwrap();
 
-        let accept = accept_reject(&distr_current, &distr_proposal, mu_current, mu_proposal, &prior_dist, data, &mut rng);
+        let accept = accept_reject(&distr_current, &distr_proposal, mu_current, mu_proposal, &mu_prior, data, &mut rng);
 
         if accept {
             mu_current = mu_proposal;
@@ -67,10 +68,10 @@ fn sampler(data: &Vec<f64>, n_iter: usize, mut rng: impl Rng, prior_dist: impl C
         
         let sigma_proposal = sigma_current + proposal_dist.sample(&mut rng);
         
-        let distr_current = Normal::new(mu_current, sigma_current).unwrap();
-        let distr_proposal = Normal::new(mu_current, sigma_proposal).unwrap();
+        let distr_current = Beta::new(mu_current, sigma_current).unwrap();
+        let distr_proposal = Beta::new(mu_current, sigma_proposal).unwrap();
 
-        let accept = accept_reject(&distr_current, &distr_proposal, sigma_current, sigma_proposal, &prior_dist, data, &mut rng);
+        let accept = accept_reject(&distr_current, &distr_proposal, sigma_current, sigma_proposal, &sigma_prior, data, &mut rng);
 
         if accept {
             sigma_current = sigma_proposal;
