@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use rayon::prelude::*;
 
 pub fn scale(data: Vec<f64>, low: f64, high: f64) -> Vec<f64> {

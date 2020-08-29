@@ -13,7 +13,7 @@ use std::time::Instant;
 fn main() {
     let mut rng = rand::thread_rng();
     let n = 1000;
-    let data = Beta::new(16., 36.)
+    let data = Normal::new(5., 2.)
         .unwrap()
         .sample_iter(&mut rng)
         .take(n)
@@ -27,14 +27,13 @@ fn main() {
 
     // data = utils::scale(utils::standardize(data), 0., 1.);
 
-
     let distr_fn = distr_wrapper::DNormal;
 
-    let prior_mu = Uniform::new(0., 1.).unwrap();
-    let prior_sigma = Uniform::new(0., 1.).unwrap();
+    let prior_mu = Uniform::new(0., 10.).unwrap();
+    let prior_sigma = LogNormal::new(0., 1.).unwrap();
 
-    let proposal_mu = Normal::new(0., 0.01).unwrap();
-    let proposal_sigma = Normal::new(0., 0.01).unwrap();
+    let proposal_mu = Normal::new(0., 0.1).unwrap();
+    let proposal_sigma = Normal::new(0., 0.1).unwrap();
 
     let n_iter = 3000;
 
