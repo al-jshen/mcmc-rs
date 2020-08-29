@@ -1,19 +1,24 @@
+import data
 import matplotlib.pyplot as plt
-
-data = []
-with open("data.txt", "r") as f1:
-    datalen = int(next(f1))
-    print(datalen)
-    data = [float(next(f1).strip()) for _ in range(datalen)]
-    samples = [float(next(f1).strip()) for _ in f1]
-
-# print(data)
-# print(samples)
+import numpy as np
+from statsmodels.graphics import tsaplots
 
 fig = plt.figure()
-ax1 = fig.add_subplot(121)
-ax1.plot(samples)
-ax2 = fig.add_subplot(122)
-ax2.hist(data, bins=50, alpha=0.5)
-ax2.hist(samples[int(len(samples) / 2) :], bins=50, alpha=0.5)
+
+ax1 = fig.add_subplot(321)
+ax1.hist(data.d)
+
+ax2 = fig.add_subplot(322)
+ax3 = fig.add_subplot(323)
+ax4 = fig.add_subplot(324)
+ax5 = fig.add_subplot(325)
+ax6 = fig.add_subplot(326)
+for p1, p2 in data.chains:
+    ax2.plot(p1, p2)
+    ax3.plot(p1)
+    ax4.plot(p2)
+    tsaplots.plot_acf(np.array(p1), ax=ax5, lags=100)
+    tsaplots.plot_acf(np.array(p2), ax=ax6, lags=100)
+
 plt.show()
+

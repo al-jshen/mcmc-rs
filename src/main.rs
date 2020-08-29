@@ -13,7 +13,7 @@ use std::time::Instant;
 fn main() {
     let mut rng = rand::thread_rng();
     let n = 1000;
-    let data = Gamma::new(2., 4.)
+    let data = Beta::new(16., 36.)
         .unwrap()
         .sample_iter(&mut rng)
         .take(n)
@@ -27,13 +27,14 @@ fn main() {
 
     // data = utils::scale(utils::standardize(data), 0., 1.);
 
-    let distr_fn = distr_wrapper::DGamma;
 
-    let prior_mu = Uniform::new(0., 5.).unwrap();
-    let prior_sigma = Uniform::new(2., 6.).unwrap();
+    let distr_fn = distr_wrapper::DNormal;
 
-    let proposal_mu = Normal::new(0., 0.1).unwrap();
-    let proposal_sigma = Normal::new(0., 0.1).unwrap();
+    let prior_mu = Uniform::new(0., 1.).unwrap();
+    let prior_sigma = Uniform::new(0., 1.).unwrap();
+
+    let proposal_mu = Normal::new(0., 0.01).unwrap();
+    let proposal_sigma = Normal::new(0., 0.01).unwrap();
 
     let n_iter = 3000;
 
@@ -98,10 +99,10 @@ where
 
     for i in 1..n_iter {
         let mut mu_proposal = mu_current + proposal_mu.sample(&mut rng);
-        while mu_proposal <= 0. {
-            // println!("mu_current={}, mu_proposal={}", mu_current, mu_proposal);
-            mu_proposal = mu_current + proposal_mu.sample(&mut rng);
-        }
+        // while mu_proposal <= 0. {
+        //     // println!("mu_current={}, mu_proposal={}", mu_current, mu_proposal);
+        //     mu_proposal = mu_current + proposal_mu.sample(&mut rng);
+        // }
 
         let distr_current = distr_fn.new(mu_current, sigma_current);
         let distr_proposal = distr_fn.new(mu_proposal, sigma_current);

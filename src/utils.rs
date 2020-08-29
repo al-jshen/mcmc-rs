@@ -14,7 +14,7 @@ pub fn standardize(data: Vec<f64>) -> Vec<f64> {
         .collect::<Vec<f64>>()
 }
 
-fn max<T>(data: &[T]) -> T
+pub fn max<T>(data: &[T]) -> T
 where
     T: std::cmp::PartialOrd + Copy,
 {
@@ -24,7 +24,7 @@ where
         .unwrap())
 }
 
-fn min<T>(data: &[T]) -> T
+pub fn min<T>(data: &[T]) -> T
 where
     T: std::cmp::PartialOrd + Copy,
 {
@@ -34,11 +34,11 @@ where
         .unwrap())
 }
 
-fn mean(data: &[f64]) -> f64 {
+pub fn mean(data: &[f64]) -> f64 {
     data.par_iter().sum::<f64>() / data.len() as f64
 }
 
-fn variance(data: &[f64]) -> f64 {
+pub fn variance(data: &[f64]) -> f64 {
     // var = mean(abs(x - x.mean())**2)
     let xbar = mean(data);
     mean(
