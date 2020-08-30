@@ -1,19 +1,20 @@
+#[macro_use]
 mod distr_wrapper;
 mod utils;
 use rand::prelude::*;
-use statrs::distribution::*;
-// use std::{
-//     fs::File,
-//     io::{BufRead, BufReader},
-//     str::FromStr,
-// };
 use rayon::prelude::*;
+use statrs::distribution::*;
 use std::time::Instant;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    str::FromStr,
+};
 
 fn main() {
     let mut rng = rand::thread_rng();
-    let n = 1000;
-    let data = Normal::new(5., 2.)
+    let n = 5000;
+    let data = Beta::new(5., 6.)
         .unwrap()
         .sample_iter(&mut rng)
         .take(n)
@@ -27,10 +28,10 @@ fn main() {
 
     // data = utils::scale(utils::standardize(data), 0., 1.);
 
-    let distr_fn = distr_wrapper::DNormal;
+    let distr_fn = distr_wrapper::DBeta;
 
-    let prior_mu = Uniform::new(0., 10.).unwrap();
-    let prior_sigma = LogNormal::new(0., 1.).unwrap();
+    let prior_mu = Normal::new(6., 2.).unwrap();
+    let prior_sigma = Uniform::new(1., 10.).unwrap();
 
     let proposal_mu = Normal::new(0., 0.1).unwrap();
     let proposal_sigma = Normal::new(0., 0.1).unwrap();
@@ -68,6 +69,16 @@ fn main() {
     println!("chains={:?}", chains);
 }
 
+trait CanSample<T> {
+    fn sample(&self, rng: ThreadRng) -> T;
+}
+
+impl CanSample<f64> for Normal {
+    fn sample(&self, mut rng: ThreadRng) -> f64 {
+        <Normal as Distribution<f64>>::sample(self, &mut rng)
+    }
+}
+
 fn sampler<T, V, W, X, Y>(
     data: &[f64],
     n_iter: usize,
@@ -95,13 +106,12 @@ where
     mu_samples[0] = mu_current;
     sigma_samples[0] = sigma_current;
 
-
     for i in 1..n_iter {
         let mut mu_proposal = mu_current + proposal_mu.sample(&mut rng);
-        // while mu_proposal <= 0. {
-        //     // println!("mu_current={}, mu_proposal={}", mu_current, mu_proposal);
-        //     mu_proposal = mu_current + proposal_mu.sample(&mut rng);
-        // }
+        while mu_proposal <= 0. {
+            // println!("mu_current={}, mu_proposal={}", mu_current, mu_proposal);
+            mu_proposal = mu_current + proposal_mu.sample(&mut rng);
+        }
 
         let distr_current = distr_fn.new(mu_current, sigma_current);
         let distr_proposal = distr_fn.new(mu_proposal, sigma_current);
