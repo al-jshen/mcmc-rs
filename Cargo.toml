@@ -12,5 +12,6 @@ blas-src = { version = "0.2.0", default-features = false, features = ["openblas"
 openblas-src = { version = "0.6.0", default-features = false, features = ["cblas", "system"] }
 statrs = "0.13.0"
 rand = "0.7.3"
+rand_distr = "0.3.0"
 rayon = "1.1"
 num_cpus = "1.13.0"

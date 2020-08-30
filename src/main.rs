@@ -1,20 +1,20 @@
-#[macro_use]
 mod distr_wrapper;
 mod utils;
-use rand::prelude::*;
+// use rand::prelude::*;
+use rand_distr::Distribution;
 use rayon::prelude::*;
 use statrs::distribution::*;
 use std::time::Instant;
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-    str::FromStr,
-};
+// use std::{
+//     fs::File,
+//     io::{BufRead, BufReader},
+//     str::FromStr,
+// };
 
 fn main() {
     let mut rng = rand::thread_rng();
     let n = 5000;
-    let data = Beta::new(5., 6.)
+    let data = Normal::new(5., 6.)
         .unwrap()
         .sample_iter(&mut rng)
         .take(n)
@@ -28,55 +28,50 @@ fn main() {
 
     // data = utils::scale(utils::standardize(data), 0., 1.);
 
-    let distr_fn = distr_wrapper::DBeta;
+    let test_wrapper = distr_wrapper::Wrap::new(
+        Normal::new(2., 3.).unwrap(),
+        rand_distr::Normal::new(2., 3.).unwrap(),
+    );
 
-    let prior_mu = Normal::new(6., 2.).unwrap();
-    let prior_sigma = Uniform::new(1., 10.).unwrap();
+    println!("{:?}", test_wrapper);
+    println!("{}", test_wrapper.sample(&mut rng));
+    println!("{}", test_wrapper.pdf(2.));
+    // let distr_fn = distr_wrapper::DNormal;
 
-    let proposal_mu = Normal::new(0., 0.1).unwrap();
-    let proposal_sigma = Normal::new(0., 0.1).unwrap();
+    // let prior_mu = Normal::new(6., 2.).unwrap();
+    // let prior_sigma = Uniform::new(1., 10.).unwrap();
 
-    let n_iter = 3000;
+    // let proposal_mu = Normal::new(0., 0.1).unwrap();
+    // let proposal_sigma = Normal::new(0., 0.1).unwrap();
 
-    let chains = (0..num_cpus::get())
-        .into_par_iter()
-        .map(|i| {
-            let now = Instant::now();
-            let (mu, sigma, mu_accept, sigma_accept) = sampler(
-                &data,
-                n_iter as usize,
-                distr_fn,
-                prior_mu,
-                prior_sigma,
-                proposal_mu,
-                proposal_sigma,
-            );
-            eprintln!(
-                "chain: {} \t time: {:.3}s \t mu accept rate: {:.3} \t sigma accept rate: {:.3}",
-                i,
-                now.elapsed().as_secs_f64(),
-                mu_accept as f64 / n_iter as f64,
-                sigma_accept as f64 / n_iter as f64
-            );
-            (mu, sigma)
-        })
-        .collect::<Vec<(Vec<f64>, Vec<f64>)>>();
+    // let n_iter = 3000;
 
-    println!("d={:?}", data);
-    //data.iter().for_each(|x| println!("{}", x));
-    // mu_samples.iter().for_each(|x| println!("{}", x));
-    // sigma_samples.iter().for_each(|x| println!("{}", x));
-    println!("chains={:?}", chains);
-}
+    // let chains = (0..num_cpus::get())
+    //     .into_par_iter()
+    //     .map(|i| {
+    //         let now = Instant::now();
+    //         let (mu, sigma, mu_accept, sigma_accept) = sampler(
+    //             &data,
+    //             n_iter as usize,
+    //             distr_fn,
+    //             prior_mu,
+    //             prior_sigma,
+    //             proposal_mu,
+    //             proposal_sigma,
+    //         );
+    //         eprintln!(
+    //             "chain: {} \t time: {:.3}s \t mu accept rate: {:.3} \t sigma accept rate: {:.3}",
+    //             i,
+    //             now.elapsed().as_secs_f64(),
+    //             mu_accept as f64 / n_iter as f64,
+    //             sigma_accept as f64 / n_iter as f64
+    //         );
+    //         (mu, sigma)
+    //     })
+    //     .collect::<Vec<(Vec<f64>, Vec<f64>)>>();
 
-trait CanSample<T> {
-    fn sample(&self, rng: ThreadRng) -> T;
-}
-
-impl CanSample<f64> for Normal {
-    fn sample(&self, mut rng: ThreadRng) -> f64 {
-        <Normal as Distribution<f64>>::sample(self, &mut rng)
-    }
+    // println!("d={:?}", data);
+    // println!("chains={:?}", chains);
 }
 
 fn sampler<T, V, W, X, Y>(
@@ -97,7 +92,7 @@ where
 {
     let mut mu_accepts = 0;
     let mut sigma_accepts = 0;
-    let mut rng = thread_rng();
+    let mut rng = rand::thread_rng();
 
     let mut mu_current = prior_mu.sample(&mut rng);
     let mut sigma_current = prior_sigma.sample(&mut rng);
@@ -172,7 +167,7 @@ fn accept_reject<T: Continuous<f64, f64>, U: Continuous<f64, f64>>(
     param_proposal: f64,
     distr_prior: &U,
     data: &[f64],
-    mut rng: impl Rng,
+    mut rng: impl rand::Rng,
 ) -> bool {
     let likelihood_current = calc_loglikelihood(distr_current, data);
     let likelihood_proposal = calc_loglikelihood(distr_proposal, data);
