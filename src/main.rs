@@ -1,3 +1,4 @@
+#[macro_use]
 mod distr_wrapper;
 mod utils;
 // use rand::prelude::*;
@@ -35,6 +36,10 @@ fn main() {
 
     println!("{:?}", test_wrapper);
     println!("{}", test_wrapper.sample(&mut rng));
+    println!(
+        "{:?}",
+        test_wrapper.sample_iter(rng).take(5).collect::<Vec<_>>()
+    );
     println!("{}", test_wrapper.pdf(2.));
     // let distr_fn = distr_wrapper::DNormal;
 

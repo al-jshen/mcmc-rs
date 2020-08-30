@@ -1,4 +1,5 @@
 use rand_distr::Distribution;
+use rand_distr::Normal as Normal2;
 use statrs::distribution::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -55,11 +56,17 @@ where
     pub fn pdf(self, x: f64) -> f64 {
         self.distr.pdf(x)
     }
-    pub fn sample<R>(self, rng: &mut R) -> f64
+    pub fn sample<R>(self, mut rng: R) -> f64
     where
         R: rand::Rng, // + ?Sized,
     {
-        self.sampler.sample(rng)
+        Distribution::sample(&self.sampler, &mut rng)
+    }
+    pub fn sample_iter<R>(self, rng: R) -> rand_distr::DistIter<S, R, f64>
+    where
+        R: rand::Rng,
+    {
+        Distribution::sample_iter(self.sampler, rng)
     }
 }
 
