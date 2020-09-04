@@ -1,14 +1,12 @@
-// use crate::distr_wrapper;
-// use rand_distr::Distribution;
-// use statrs::distribution::Continuous;
 use statistics::distributions::*;
+use std::sync::Arc;
 
 pub fn sampler<T>(
     data: &[f64],
     n_iter: usize,
     distr_fn: T,
-    distr_priors: Vec<Box<dyn Continuous>>,
-    distr_proposals: Vec<Box<dyn Continuous>>,
+    distr_priors: Arc<Vec<Box<dyn Continuous>>>,
+    distr_proposals: Arc<Vec<Box<dyn Continuous>>>,
 ) -> (Vec<Vec<f64>>, Vec<usize>)
 where
     T: Continuous + Clone + Copy,
