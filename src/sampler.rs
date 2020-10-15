@@ -1,4 +1,4 @@
-use statistics::distributions::*;
+use compute::distributions::*;
 use std::sync::Arc;
 
 pub fn sampler<T>(
