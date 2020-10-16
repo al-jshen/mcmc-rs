@@ -1,5 +1,7 @@
 mod sampler;
+mod sampler_linreg;
 mod utils;
+
 use compute::distributions::*;
 use rayon::prelude::*;
 use std::sync::Arc;
