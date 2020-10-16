@@ -1,65 +1,82 @@
 use compute::distributions::*;
 use std::sync::Arc;
 
-#[allow(dead_code)]
-fn sampler(
+pub fn sampler(
     xdata: &[f64],
     ydata: &[f64],
     n_iter: usize,
-    distalpha: Normal,      // distribution of alpha param
-    distbeta: Normal,       // distribution of beta param
-    distsigma: Exponential, // distribution of sigma param
-    propalpha: Normal,      // how to draw proposals to change alpha param
-    propbeta: Normal,       // how to draw proposals to change beta param
-    propsigma: Normal,      // how to draw proposals to change sigma param
-) {
-    let alpha = distalpha.sample();
-    let beta = distbeta.sample();
-    let sigma = distsigma.sample();
-    let mu = &xdata.iter().map(|x| alpha + beta * x).collect::<Vec<f64>>();
-    let distmu = &mu
-        .iter()
-        .map(|x| Normal::new(*x, sigma))
-        .collect::<Vec<_>>();
-    // how good is distmu?
-    // create some evaluation method.
+    priors: Arc<Vec<Box<dyn Continuous>>>,
+    proposals: Arc<Vec<Box<dyn Continuous>>>,
+) -> Vec<Vec<f64>> {
+    let mut samples = vec![vec![0.; n_iter]; priors.len()];
+
+    let mut params = priors.iter().map(|d| d.sample()).collect::<Vec<_>>();
+    let distmu = create_distmu(&params, xdata);
+
     let mut lpdf = 0.;
-    lpdf += distalpha.pdf(alpha).ln();
-    lpdf += distbeta.pdf(beta).ln();
-    lpdf += distsigma.pdf(sigma).ln();
-    lpdf += calc_loglikelihood(distmu, ydata);
+    // lpdf += calc_boxedloglikelihood(&priors, &params);
+    lpdf += calc_loglikelihood(&distmu, ydata);
 
-    // change the alpha first, see if that makes things better.
+    for n in 1..n_iter {
+        for i in 0..proposals.len() {
+            let mut new_params = params.clone();
+            if i == 2 {
+                // only for sigma, restrict to positive numbers
+                new_params[i] = loop {
+                    let np = new_params[i] + proposals[i].sample();
+                    if np > 0. {
+                        break np;
+                    }
+                };
+            } else {
+                new_params[i] += proposals[i].sample();
+            }
+            let new_distmu = create_distmu(&new_params, xdata);
+            // println!("{:?}", new_distmu);
+            let mut new_lpdf = 0.;
+            // new_lpdf += calc_boxedloglikelihood(&priors, &new_params);
+            new_lpdf += calc_loglikelihood(&new_distmu, ydata);
 
-    let alpha2 = distalpha.sample();
-    let mu2 = &xdata
-        .iter()
-        .map(|x| alpha2 + beta * x)
-        .collect::<Vec<f64>>();
-    let distmu2 = &mu2
-        .iter()
-        .map(|x| Normal::new(*x, sigma))
-        .collect::<Vec<_>>();
-
-    let mut lpdf2 = 0.;
-    lpdf2 += distalpha.pdf(alpha2);
-    lpdf2 += distbeta.pdf(beta).ln();
-    lpdf += distsigma.pdf(sigma).ln();
-    lpdf += calc_loglikelihood(distmu2, ydata);
-
-    if (lpdf2 > lpdf) {
-        // use alpha2 instead of alpha1
-    } else {
-        // throw away alpha2
+            // println!("{}", new_lpdf > lpdf);
+            // println!("{:?}", distmu);
+            // println!("-----------------");
+            // eprintln!("{}, {}", lpdf, new_lpdf);
+            println!("-------------------------------");
+            println!("{:?}, {}", params, lpdf);
+            println!("{:?}, {}", new_params, new_lpdf);
+            if new_lpdf > lpdf {
+                params = new_params;
+                lpdf = new_lpdf;
+            }
+            samples[i][n] = params[i];
+        }
     }
-    // then add alpha1 or alpha2 to the samples for alpha
 
-    // then change the beta, see if that makes things better.
-    ()
+    samples
 }
 
-fn calc_loglikelihood<T: Continuous>(mean_dists: &[T], data: &[f64]) -> f64 {
-    mean_dists
+fn create_distmu(params: &[f64], xdata: &[f64]) -> Vec<Normal> {
+    let mu = xdata
+        .iter()
+        .map(|x| params[0] + params[1] * x)
+        .collect::<Vec<f64>>();
+    let distmu = mu
+        .iter()
+        .map(|x| Normal::new(*x, params[2]))
+        .collect::<Vec<_>>();
+    distmu
+}
+
+fn calc_loglikelihood<T: Continuous>(distrs: &[T], data: &[f64]) -> f64 {
+    distrs
+        .iter()
+        .enumerate()
+        .map(|(i, x)| x.pdf(data[i]).ln())
+        .sum()
+}
+
+fn calc_boxedloglikelihood(distrs: &[Box<dyn Continuous>], data: &[f64]) -> f64 {
+    distrs
         .iter()
         .enumerate()
         .map(|(i, x)| x.pdf(data[i]).ln())
